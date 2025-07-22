@@ -1,32 +1,28 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { getDatabaseConfig } from './config/database.config';
 import configuration from './config/configuration';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { userModule } from './user/user.module';
+import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
+import { CompanyModule } from './company/company.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      load: [configuration],
       isGlobal: true,
+      load: [configuration],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
+      useFactory: getDatabaseConfig,
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('database.host'),
-        port: configService.get<number>('database.port'),
-        username: configService.get<string>('database.username'),
-        password: configService.get<string>('database.password'),
-        database: configService.get<string>('database.database'),
-        entities: [],
-        synchronize: false,
-      }),
     }),
-    userModule,
+    UserModule, // ← Add this
+    AuthModule, // ← Add this
+    CompanyModule, // ← Add this
   ],
   controllers: [AppController],
   providers: [AppService],

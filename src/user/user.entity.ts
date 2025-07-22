@@ -10,19 +10,20 @@ import { Role } from '../common/enums/role.enum';
 
 type UserAttributes = {
   id: string;
-  companyId: string;
+  company_id: string;
   username: string;
   email: string;
   password: string;
   role: Role;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
+  modified_by: string;
+  created_at: Date;
+  updated_at: Date;
+  deleted_at?: Date;
 };
 
 export type CreateUserData = Pick<
   UserAttributes,
-  'companyId' | 'username' | 'email' | 'password' | 'role'
+  'company_id' | 'username' | 'email' | 'password' | 'role'
 >;
 
 export type UpdateUserData = Partial<
@@ -57,6 +58,9 @@ export class User {
     default: Role.VIEWER,
   })
   role: Role;
+
+  @Column({ name: 'modified_by', type: 'uuid' })
+  modifiedBy: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
