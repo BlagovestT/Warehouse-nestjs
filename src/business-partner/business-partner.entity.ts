@@ -6,36 +6,36 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
-import { Role } from '../common/enums/role.enum';
 
-type UserAttributes = {
+export enum BusinessPartnerType {
+  CUSTOMER = 'customer',
+  SUPPLIER = 'supplier',
+}
+
+export interface BusinessPartnersAttributes {
   id: string;
   companyId: string;
-  username: string;
+  name: string;
   email: string;
-  password: string;
-  role: Role;
+  type: BusinessPartnerType;
+  modifiedBy: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
-};
+}
 
-export type CreateUserData = Pick<
-  UserAttributes,
-  'companyId' | 'username' | 'email' | 'password' | 'role'
+export type CreateBusinessPartnersData = Pick<
+  BusinessPartnersAttributes,
+  'companyId' | 'name' | 'email' | 'type' | 'modifiedBy'
 >;
 
-export type UpdateUserData = Partial<
-  Pick<UserAttributes, 'username' | 'email' | 'password' | 'role'>
+export type UpdateBusinessPartnersData = Pick<
+  BusinessPartnersAttributes,
+  'name' | 'email' | 'type'
 >;
 
-export type LoginData = {
-  email: string;
-  password: string;
-};
-
-@Entity('user')
-export class User {
+@Entity('business_partners')
+export class BusinessPartners {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -43,20 +43,19 @@ export class User {
   companyId: string;
 
   @Column({ type: 'varchar', length: 255 })
-  username: string;
-
-  @Column({ type: 'varchar', length: 255, unique: true })
-  email: string;
+  name: string;
 
   @Column({ type: 'varchar', length: 255 })
-  password: string;
+  email: string;
 
   @Column({
     type: 'enum',
-    enum: Role,
-    default: Role.VIEWER,
+    enum: BusinessPartnerType,
   })
-  role: Role;
+  type: BusinessPartnerType;
+
+  @Column({ name: 'modified_by', type: 'uuid' })
+  modifiedBy: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
