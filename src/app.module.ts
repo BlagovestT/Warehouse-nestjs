@@ -8,6 +8,12 @@ import configuration from './config/configuration';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { CompanyModule } from './company/company.module';
+import { BusinessPartnersModule } from './business-partner/business-partner.module';
+import { WarehouseModule } from './warehouse/warehouse.module';
+import { ProductModule } from './product/product.module';
+import { OrderModule } from './order/order.module';
+import { OrderItemModule } from './order-item/order-item.module';
+import { InvoiceModule } from './invoice/invoice.module';
 
 @Module({
   imports: [
@@ -20,9 +26,15 @@ import { CompanyModule } from './company/company.module';
       useFactory: getDatabaseConfig,
       inject: [ConfigService],
     }),
-    UserModule, // ← Add this
-    AuthModule, // ← Add this
-    CompanyModule, // ← Add this
+    UserModule,
+    AuthModule,
+    CompanyModule,
+    BusinessPartnersModule,
+    WarehouseModule,
+    ProductModule,
+    OrderModule,
+    OrderItemModule,
+    InvoiceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
