@@ -1,42 +1,45 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
+import { Entity, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { BaseEntity } from '../common/entities/base.entity';
+import { User } from '../user/user.entity';
+import { BusinessPartners } from '../business-partner/business-partner.entity';
+import { Warehouse } from '../warehouse/warehouse.entity';
+import { Product } from '../product/product.entity';
+import { Order } from '../order/order.entity';
+import { Invoice } from '../invoice/invoice.entity';
 
-type CompanyAttributes = {
-  id: string;
-  name: string;
-  modifiedBy?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-};
+export type CreateCompanyData = Pick<Company, 'name' | 'modifiedBy'>;
+export type UpdateCompanyData = Pick<Company, 'name'>;
 
-export type CreateCompanyData = Pick<CompanyAttributes, 'name' | 'modifiedBy'>;
-
-export type UpdateCompanyData = Pick<CompanyAttributes, 'name'>;
-
-@Entity('company')
-export class Company {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Entity({ name: 'company' })
+export class Company extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
-  @Column({ name: 'modifiedBy', type: 'uuid' })
-  modifiedBy: string;
+  @Column({ name: 'modified_by', type: 'uuid' })
+  modifiedBy!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @OneToMany(() => User, (user) => user.company)
+  users!: User[];
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  @OneToMany(
+    () => BusinessPartners,
+    (businessPartner) => businessPartner.company,
+  )
+  businessPartners!: BusinessPartners[];
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
+  @OneToMany(() => Warehouse, (warehouse) => warehouse.company)
+  warehouses!: Warehouse[];
+
+  @OneToMany(() => Product, (product) => product.company)
+  products!: Product[];
+
+  @OneToMany(() => Order, (order) => order.company)
+  orders!: Order[];
+
+  @OneToMany(() => Invoice, (invoice) => invoice.company)
+  invoices!: Invoice[];
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'modified_by' })
+  modifiedByUser?: User;
 }

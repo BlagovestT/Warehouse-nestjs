@@ -1,68 +1,51 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { BaseEntity } from '../common/entities/base.entity';
+import { Company } from '../company/company.entity';
+import { User } from '../user/user.entity';
+import { Order } from '../order/order.entity';
 
 export enum BusinessPartnerType {
   CUSTOMER = 'customer',
   SUPPLIER = 'supplier',
 }
 
-export interface BusinessPartnersAttributes {
-  id: string;
-  companyId: string;
-  name: string;
-  email: string;
-  type: BusinessPartnerType;
-  modifiedBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
 export type CreateBusinessPartnersData = Pick<
-  BusinessPartnersAttributes,
+  BusinessPartners,
   'companyId' | 'name' | 'email' | 'type' | 'modifiedBy'
 >;
-
 export type UpdateBusinessPartnersData = Pick<
-  BusinessPartnersAttributes,
+  BusinessPartners,
   'name' | 'email' | 'type'
 >;
 
-@Entity('business_partners')
-export class BusinessPartners {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Entity({ name: 'business_partners' })
+export class BusinessPartners extends BaseEntity {
   @Column({ name: 'company_id', type: 'uuid' })
-  companyId: string;
+  companyId!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  email: string;
+  email!: string;
 
   @Column({
     type: 'enum',
     enum: BusinessPartnerType,
   })
-  type: BusinessPartnerType;
+  type!: BusinessPartnerType;
 
   @Column({ name: 'modified_by', type: 'uuid' })
-  modifiedBy: string;
+  modifiedBy!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @ManyToOne(() => Company, (company) => company.businessPartners)
+  @JoinColumn({ name: 'company_id' })
+  company!: Company;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'modified_by' })
+  modifiedByUser?: User;
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
+  @OneToMany(() => Order, (order) => order.businessPartner)
+  orders!: Order[];
 }

@@ -1,73 +1,46 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { BaseEntity } from '../common/entities/base.entity';
 import { Role } from '../common/enums/role.enum';
-
-type UserAttributes = {
-  id: string;
-  company_id: string;
-  username: string;
-  email: string;
-  password: string;
-  role: Role;
-  modified_by: string;
-  created_at: Date;
-  updated_at: Date;
-  deleted_at?: Date;
-};
+import { Company } from '../company/company.entity';
 
 export type CreateUserData = Pick<
-  UserAttributes,
-  'company_id' | 'username' | 'email' | 'password' | 'role'
+  User,
+  'companyId' | 'username' | 'email' | 'password' | 'role'
 >;
-
 export type UpdateUserData = Partial<
-  Pick<UserAttributes, 'username' | 'email' | 'password' | 'role'>
+  Pick<User, 'username' | 'email' | 'password' | 'role'>
 >;
+export type LoginData = Pick<User, 'email' | 'password'>;
 
-export type LoginData = {
-  email: string;
-  password: string;
-};
-
-@Entity('user')
-export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Entity({ name: 'user' })
+export class User extends BaseEntity {
   @Column({ name: 'company_id', type: 'uuid' })
-  companyId: string;
+  companyId!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  username: string;
+  username!: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  email: string;
+  email!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  password: string;
+  password!: string;
 
   @Column({
     type: 'enum',
     enum: Role,
     default: Role.VIEWER,
   })
-  role: Role;
+  role!: Role;
 
-  @Column({ name: 'modified_by', type: 'uuid' })
-  modifiedBy: string;
+  @Column({ name: 'modified_by', type: 'uuid', nullable: true })
+  modifiedBy?: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @ManyToOne(() => Company, (company) => company.users)
+  @JoinColumn({ name: 'company_id' })
+  company!: Company;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'modified_by' })
+  modifiedByUser?: User;
 }

@@ -1,68 +1,48 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { BaseEntity } from '../common/entities/base.entity';
+import { Company } from '../company/company.entity';
+import { User } from '../user/user.entity';
+import { OrderItem } from '../order-item/order-item.entity';
 
 export enum ProductType {
   SOLID = 'solid',
   LIQUID = 'liquid',
 }
 
-export interface ProductAttributes {
-  id: string;
-  companyId: string;
-  name: string;
-  price: number;
-  type: ProductType;
-  modifiedBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
 export type CreateProductData = Pick<
-  ProductAttributes,
+  Product,
   'companyId' | 'name' | 'price' | 'type' | 'modifiedBy'
 >;
+export type UpdateProductData = Pick<Product, 'name' | 'price' | 'type'>;
 
-export type UpdateProductData = Pick<
-  ProductAttributes,
-  'name' | 'price' | 'type'
->;
-
-@Entity('product')
-export class Product {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Entity({ name: 'product' })
+export class Product extends BaseEntity {
   @Column({ name: 'company_id', type: 'uuid' })
-  companyId: string;
+  companyId!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
+  price!: number;
 
   @Column({
     type: 'enum',
     enum: ProductType,
   })
-  type: ProductType;
+  type!: ProductType;
 
   @Column({ name: 'modified_by', type: 'uuid' })
-  modifiedBy: string;
+  modifiedBy!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @ManyToOne(() => Company, (company) => company.products)
+  @JoinColumn({ name: 'company_id' })
+  company!: Company;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'modified_by' })
+  modifiedByUser?: User;
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
+  orderItems!: OrderItem[];
 }

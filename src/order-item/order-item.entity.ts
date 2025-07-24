@@ -1,56 +1,38 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
-
-export interface OrderItemAttributes {
-  id: string;
-  orderId: string;
-  productId: string;
-  quantity: number;
-  modifiedBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { BaseEntity } from '../common/entities/base.entity';
+import { Order } from '../order/order.entity';
+import { Product } from '../product/product.entity';
+import { User } from '../user/user.entity';
 
 export type CreateOrderItemData = Pick<
-  OrderItemAttributes,
+  OrderItem,
   'orderId' | 'productId' | 'quantity' | 'modifiedBy'
 >;
+export type UpdateOrderItemData = Pick<OrderItem, 'productId' | 'quantity'>;
 
-export type UpdateOrderItemData = Pick<
-  OrderItemAttributes,
-  'productId' | 'quantity'
->;
-
-@Entity('order_item')
-export class OrderItem {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Entity({ name: 'order_item' })
+export class OrderItem extends BaseEntity {
   @Column({ name: 'order_id', type: 'uuid' })
-  orderId: string;
+  orderId!: string;
 
   @Column({ name: 'product_id', type: 'uuid' })
-  productId: string;
+  productId!: string;
 
   @Column({ type: 'int' })
-  quantity: number;
+  quantity!: number;
 
   @Column({ name: 'modified_by', type: 'uuid' })
-  modifiedBy: string;
+  modifiedBy!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @ManyToOne(() => Order, (order) => order.orderItems)
+  @JoinColumn({ name: 'order_id' })
+  order!: Order;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  @ManyToOne(() => Product, (product) => product.orderItems)
+  @JoinColumn({ name: 'product_id' })
+  product!: Product;
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'modified_by' })
+  modifiedByUser?: User;
 }

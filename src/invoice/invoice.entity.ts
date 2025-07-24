@@ -1,44 +1,25 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
-
-export interface InvoiceAttributes {
-  id: string;
-  companyId: string;
-  orderId: string;
-  invoiceNumber: string;
-  date: Date;
-  modifiedBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
+import { Entity, Column, ManyToOne, OneToOne, JoinColumn } from 'typeorm';
+import { BaseEntity } from '../common/entities/base.entity';
+import { Company } from '../company/company.entity';
+import { Order } from '../order/order.entity';
+import { User } from '../user/user.entity';
 
 export type CreateInvoiceData = Pick<
-  InvoiceAttributes,
+  Invoice,
   'companyId' | 'orderId' | 'invoiceNumber' | 'date' | 'modifiedBy'
 >;
-
 export type UpdateInvoiceData = Pick<
-  InvoiceAttributes,
+  Invoice,
   'orderId' | 'invoiceNumber' | 'date'
 >;
 
-@Entity('invoice')
-export class Invoice {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Entity({ name: 'invoice' })
+export class Invoice extends BaseEntity {
   @Column({ name: 'company_id', type: 'uuid' })
-  companyId: string;
+  companyId!: string;
 
   @Column({ name: 'order_id', type: 'uuid' })
-  orderId: string;
+  orderId!: string;
 
   @Column({
     name: 'invoice_number',
@@ -46,20 +27,23 @@ export class Invoice {
     length: 255,
     unique: true,
   })
-  invoiceNumber: string;
+  invoiceNumber!: string;
 
   @Column({ type: 'date' })
-  date: Date;
+  date!: Date;
 
   @Column({ name: 'modified_by', type: 'uuid' })
-  modifiedBy: string;
+  modifiedBy!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @ManyToOne(() => Company, (company) => company.invoices)
+  @JoinColumn({ name: 'company_id' })
+  company!: Company;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  @OneToOne(() => Order, (order) => order.invoice)
+  @JoinColumn({ name: 'order_id' })
+  order!: Order;
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'modified_by' })
+  modifiedByUser?: User;
 }

@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import * as dotenv from 'dotenv';
+import { envSchema } from '../env/env';
 import { User } from '../user/user.entity';
 import { Company } from '../company/company.entity';
 import { BusinessPartners } from '../business-partner/business-partner.entity';
@@ -9,17 +9,17 @@ import { Order } from '../order/order.entity';
 import { OrderItem } from '../order-item/order-item.entity';
 import { Invoice } from '../invoice/invoice.entity';
 
-dotenv.config();
+const env = envSchema.parse(process.env);
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT || 5432),
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'warehouse_nest',
+  host: env.DB_HOST,
+  port: env.DB_PORT,
+  username: env.DB_USERNAME,
+  password: env.DB_PASSWORD,
+  database: env.DB_NAME,
   synchronize: false,
-  logging: true,
+  logging: env.NODE_ENV === 'development',
   entities: [
     User,
     Company,

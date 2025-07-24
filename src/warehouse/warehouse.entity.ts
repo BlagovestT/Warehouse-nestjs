@@ -1,11 +1,8 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { BaseEntity } from '../common/entities/base.entity';
+import { Company } from '../company/company.entity';
+import { User } from '../user/user.entity';
+import { Order } from '../order/order.entity';
 
 export enum SupportType {
   SOLID = 'solid',
@@ -13,54 +10,38 @@ export enum SupportType {
   MIXED = 'mixed',
 }
 
-export interface WarehouseAttributes {
-  id: string;
-  companyId: string;
-  supportType: SupportType;
-  name: string;
-  modifiedBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
 export type CreateWarehouseData = Pick<
-  WarehouseAttributes,
+  Warehouse,
   'companyId' | 'supportType' | 'name' | 'modifiedBy'
 >;
+export type UpdateWarehouseData = Pick<Warehouse, 'supportType' | 'name'>;
 
-export type UpdateWarehouseData = Pick<
-  WarehouseAttributes,
-  'supportType' | 'name'
->;
-
-@Entity('warehouse')
-export class Warehouse {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Entity({ name: 'warehouse' })
+export class Warehouse extends BaseEntity {
   @Column({ name: 'company_id', type: 'uuid' })
-  companyId: string;
+  companyId!: string;
 
   @Column({
     name: 'support_type',
     type: 'enum',
     enum: SupportType,
   })
-  supportType: SupportType;
+  supportType!: SupportType;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ name: 'modified_by', type: 'uuid' })
-  modifiedBy: string;
+  modifiedBy!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @ManyToOne(() => Company, (company) => company.warehouses)
+  @JoinColumn({ name: 'company_id' })
+  company!: Company;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'modified_by' })
+  modifiedByUser?: User;
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
+  @OneToMany(() => Order, (order) => order.warehouse)
+  orders!: Order[];
 }

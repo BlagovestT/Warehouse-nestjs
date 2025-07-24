@@ -29,6 +29,12 @@ export class ProductController {
     return await this.productService.getAllProducts();
   }
 
+  @Get('best-product')
+  //   @UseGuards(JwtAuthGuard)
+  async getBestProduct() {
+    return await this.productService.getBestSellingProducts();
+  }
+
   // GET /api/product/:id - Get product by ID (Protected)
   @Get(':id')
   @UseGuards(JwtAuthGuard)

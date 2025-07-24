@@ -8,8 +8,8 @@ interface JwtPayload {
   email: string;
   role: string;
   companyId: string;
-  iat?: number;
-  exp?: number;
+  iat: number;
+  exp: number;
 }
 
 @Injectable()
@@ -44,21 +44,16 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        companyId: user.companyId,
-      },
+      message: 'User logged successfully',
     };
   }
 
   async register(userData: CreateUserData) {
-    const user = await this.userService.createUser(userData);
+    await this.userService.createUser(userData);
 
-    // Auto-login
-    return this.login({ email: user.email, password: userData.password });
+    return {
+      message: 'User registered successfully',
+    };
   }
 
   async verifyToken(token: string) {

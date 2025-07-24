@@ -15,6 +15,7 @@ export class UserService extends BaseService<User> {
   }
 
   protected getEntityName(): string {
+    // this.userRepository.metadata.tableName
     return 'User';
   }
 

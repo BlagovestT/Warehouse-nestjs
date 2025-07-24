@@ -11,9 +11,7 @@ export abstract class BaseService<T extends { id: string }> {
   // Common CRUD operations
   async getAll(): Promise<T[]> {
     const result = await this.repository.find();
-    if (!result || result.length === 0) {
-      throw new NotFoundException(`No ${this.getEntityName()} found`);
-    }
+
     console.log(result);
     return result;
   }
