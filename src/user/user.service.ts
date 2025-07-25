@@ -15,17 +15,15 @@ export class UserService extends BaseService<User> {
   }
 
   protected getEntityName(): string {
-    // this.userRepository.metadata.tableName
     return 'User';
   }
 
-  // Crud
-  async getAllUsers(): Promise<User[]> {
-    return this.getAll();
+  async getAllUsers(userCompanyId: string): Promise<User[]> {
+    return this.getAll(userCompanyId);
   }
 
-  async getUserById(id: string): Promise<User> {
-    return this.getById(id);
+  async getUserById(id: string, userCompanyId?: string): Promise<User> {
+    return this.getById(id, userCompanyId);
   }
 
   async createUser(userData: CreateUserData): Promise<User> {
@@ -50,12 +48,25 @@ export class UserService extends BaseService<User> {
     return await this.userRepository.save(user);
   }
 
-  async updateUser(id: string, updateData: UpdateUserData): Promise<User> {
-    const user = await this.getUserById(id);
+  async updateUser(
+    id: string,
+    updateData: UpdateUserData,
+    modifiedById: string,
+    userCompanyId: string,
+  ): Promise<User> {
+    const user = await this.getUserById(id, userCompanyId);
+
+    const dataToUpdate: Partial<User> = {
+      ...updateData,
+      modifiedBy: modifiedById,
+    };
 
     if (updateData.password) {
       const saltRounds = 10;
-      updateData.password = await bcrypt.hash(updateData.password, saltRounds);
+      dataToUpdate.password = await bcrypt.hash(
+        updateData.password,
+        saltRounds,
+      );
     }
 
     if (updateData.email && updateData.email !== user.email) {
@@ -68,15 +79,18 @@ export class UserService extends BaseService<User> {
       }
     }
 
-    await this.userRepository.update(id, updateData);
-    return await this.getUserById(id);
+    await this.userRepository.update(id, dataToUpdate);
+
+    return await this.getUserById(id, userCompanyId);
   }
 
-  async deleteUser(id: string): Promise<{ message: string }> {
-    return this.deleteById(id);
+  async deleteUser(
+    id: string,
+    userCompanyId: string,
+  ): Promise<{ message: string }> {
+    return this.deleteById(id, userCompanyId);
   }
 
-  // For authentication
   async findByEmail(email: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { email },

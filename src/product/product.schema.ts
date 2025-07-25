@@ -1,12 +1,11 @@
 import { z } from 'zod';
-import { ProductType } from './product.entity';
+import { ProductType } from 'src/common/enums/product-type.enum';
 
 export const createProductSchema = z.object({
   companyId: z.uuid(),
   name: z.string().min(2).max(255).trim(),
   price: z.number().positive(),
   type: z.enum(ProductType),
-  modifiedBy: z.uuid(),
 });
 
 export const updateProductSchema = z.object({

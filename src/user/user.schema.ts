@@ -1,8 +1,14 @@
 import { z } from 'zod';
 import { Role } from '../common/enums/role.enum';
 
-export const createUserSchema = z.object({
-  companyId: z.uuid(),
+export const registerOwnerSchema = z.object({
+  companyName: z.string().min(1).max(255).trim(),
+  username: z.string().min(3).max(50).trim(),
+  email: z.email(),
+  password: z.string().min(6),
+});
+
+export const registerUserSchema = z.object({
   username: z.string().min(3).max(50).trim(),
   email: z.email(),
   password: z.string().min(6),

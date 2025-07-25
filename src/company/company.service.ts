@@ -21,20 +21,40 @@ export class CompanyService extends BaseService<Company> {
     return 'Company';
   }
 
-  async getAllCompanies(): Promise<Company[]> {
+  async getAllCompanies(userCompanyId: string): Promise<Company[]> {
+    if (userCompanyId) {
+      return await this.companyRepository.find({
+        where: { id: userCompanyId },
+      });
+    }
+
     return this.getAll();
   }
 
-  async getCompanyById(id: string): Promise<Company> {
-    return this.getById(id);
+  async getCompanyById(id: string, userCompanyId: string): Promise<Company> {
+    if (userCompanyId && id !== userCompanyId) {
+      throw new Error(`Company not found`);
+    }
+
+    return this.getById(id, userCompanyId);
   }
 
-  async deleteCompany(id: string): Promise<{ message: string }> {
-    return this.deleteById(id);
+  async deleteCompany(
+    id: string,
+    userCompanyId?: string,
+  ): Promise<{ message: string }> {
+    if (userCompanyId && id !== userCompanyId) {
+      throw new Error(`Company not found`);
+    }
+
+    return this.deleteById(id, userCompanyId);
   }
 
-  async createCompany(companyData: CreateCompanyData): Promise<Company> {
-    const { name, modifiedBy } = companyData;
+  async createCompany(
+    companyData: CreateCompanyData,
+    modifiedById: string,
+  ): Promise<Company> {
+    const { name } = companyData;
 
     const existingCompany = await this.companyRepository.findOne({
       where: { name },
@@ -46,7 +66,7 @@ export class CompanyService extends BaseService<Company> {
 
     const company = this.companyRepository.create({
       name,
-      modifiedBy,
+      modifiedBy: modifiedById,
     });
 
     return await this.companyRepository.save(company);
@@ -55,11 +75,13 @@ export class CompanyService extends BaseService<Company> {
   async updateCompany(
     id: string,
     updateData: UpdateCompanyData,
+    modifiedById: string,
+    userCompanyId: string,
   ): Promise<Company> {
     const { name } = updateData;
-    const company = await this.getById(id);
 
-    // Check if name already exists (if name is being changed)
+    const company = await this.getCompanyById(id, userCompanyId);
+
     if (name !== company.name) {
       const existingCompany = await this.companyRepository.findOne({
         where: { name },
@@ -70,7 +92,11 @@ export class CompanyService extends BaseService<Company> {
       }
     }
 
-    await this.companyRepository.update(id, { name });
-    return await this.getById(id);
+    await this.companyRepository.update(id, {
+      name,
+      modifiedBy: modifiedById,
+    });
+
+    return await this.getCompanyById(id, userCompanyId);
   }
 }

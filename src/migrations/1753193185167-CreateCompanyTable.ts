@@ -25,7 +25,7 @@ export class CreateCompanyTable1753193185167 implements MigrationInterface {
           {
             name: 'modified_by',
             type: 'uuid',
-            isNullable: false,
+            isNullable: true,
           },
           {
             name: 'created_at',

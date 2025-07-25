@@ -3,11 +3,7 @@ import { BaseEntity } from '../common/entities/base.entity';
 import { Company } from '../company/company.entity';
 import { User } from '../user/user.entity';
 import { Order } from '../order/order.entity';
-
-export enum BusinessPartnerType {
-  CUSTOMER = 'customer',
-  SUPPLIER = 'supplier',
-}
+import { BusinessPartnerType } from '../common/enums/business-partner.enum';
 
 export type CreateBusinessPartnersData = Pick<
   BusinessPartners,

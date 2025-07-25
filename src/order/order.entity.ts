@@ -13,11 +13,7 @@ import { BusinessPartners } from '../business-partner/business-partner.entity';
 import { User } from '../user/user.entity';
 import { OrderItem } from '../order-item/order-item.entity';
 import { Invoice } from '../invoice/invoice.entity';
-
-export enum OrderType {
-  SHIPMENT = 'shipment',
-  DELIVERY = 'delivery',
-}
+import { OrderType } from 'src/common/enums/order-type.enum';
 
 export type CreateOrderData = Pick<
   Order,

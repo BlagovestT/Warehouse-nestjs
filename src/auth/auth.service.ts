@@ -1,22 +1,25 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { DataSource } from 'typeorm';
 import { UserService } from '../user/user.service';
+import { CompanyService } from '../company/company.service';
 import { LoginData, CreateUserData } from '../user/user.entity';
-
-interface JwtPayload {
-  sub: string;
-  email: string;
-  role: string;
-  companyId: string;
-  iat: number;
-  exp: number;
-}
+import { User } from '../user/user.entity';
+import { Company } from '../company/company.entity';
+import { Role } from '../common/enums/role.enum';
+import {
+  JwtPayload,
+  RegisterOwnerData,
+} from 'src/common/interfaces/auth.interface';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
+    private companyService: CompanyService,
     private jwtService: JwtService,
+    private dataSource: DataSource,
   ) {}
 
   async login(loginData: LoginData) {
@@ -35,7 +38,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = {
+    const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
@@ -64,5 +67,43 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid token');
     }
+  }
+
+  async registerOwner(ownerData: RegisterOwnerData) {
+    const { companyName, username, email, password } = ownerData;
+
+    return await this.dataSource.transaction(async (manager) => {
+      const company = manager.create(Company, {
+        name: companyName,
+      });
+      const savedCompany = await manager.save(Company, company);
+
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      const user = manager.create(User, {
+        companyId: savedCompany.id,
+        username,
+        email,
+        password: hashedPassword,
+        role: Role.OWNER,
+      });
+      const savedUser = await manager.save(User, user);
+
+      await manager.update(Company, savedCompany.id, {
+        modifiedBy: savedUser.id,
+      });
+
+      return {
+        message: 'Company and owner registered successfully',
+        company: savedCompany,
+        user: {
+          id: savedUser.id,
+          username: savedUser.username,
+          email: savedUser.email,
+          role: savedUser.role,
+        },
+      };
+    });
   }
 }

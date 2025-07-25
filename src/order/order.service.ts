@@ -17,51 +17,76 @@ export class OrderService extends BaseService<Order> {
     return 'Order';
   }
 
-  // CRUD
-  async getAllOrders(): Promise<Order[]> {
-    return this.getAll();
+  async getAllOrders(userCompanyId: string): Promise<Order[]> {
+    return this.getAll(userCompanyId);
   }
 
-  async getOrderById(id: string): Promise<Order> {
-    return this.getById(id);
+  async getOrderById(id: string, userCompanyId: string): Promise<Order> {
+    return this.getById(id, userCompanyId);
   }
 
-  async createOrder(orderData: CreateOrderData): Promise<Order> {
-    const { orderNumber } = orderData;
+  async createOrder(
+    orderData: CreateOrderData,
+    modifiedById: string,
+  ): Promise<Order> {
+    const { orderNumber, companyId } = orderData;
 
     const existingOrder = await this.orderRepository.findOne({
-      where: { orderNumber },
+      where: { orderNumber, companyId },
     });
 
     if (existingOrder) {
-      throw new ConflictException('Order already exists');
+      throw new ConflictException(
+        'Order number already exists in your company',
+      );
     }
 
-    const order = this.orderRepository.create(orderData);
+    const order = this.orderRepository.create({
+      ...orderData,
+      modifiedBy: modifiedById,
+    });
+
     return await this.orderRepository.save(order);
   }
 
-  async updateOrder(id: string, updateData: UpdateOrderData): Promise<Order> {
-    const order = await this.getOrderById(id);
+  async updateOrder(
+    id: string,
+    updateData: UpdateOrderData,
+    modifiedById: string,
+    userCompanyId: string,
+  ): Promise<Order> {
+    const order = await this.getOrderById(id, userCompanyId);
 
     if (
       updateData.orderNumber &&
       updateData.orderNumber !== order.orderNumber
     ) {
       const existingOrder = await this.orderRepository.findOne({
-        where: { orderNumber: updateData.orderNumber },
+        where: {
+          orderNumber: updateData.orderNumber,
+          companyId: order.companyId,
+        },
       });
 
       if (existingOrder) {
-        throw new ConflictException('Order number already exists');
+        throw new ConflictException(
+          'Order number already exists in your company',
+        );
       }
     }
 
-    await this.orderRepository.update(id, updateData);
-    return await this.getOrderById(id);
+    await this.orderRepository.update(id, {
+      ...updateData,
+      modifiedBy: modifiedById,
+    });
+
+    return await this.getOrderById(id, userCompanyId);
   }
 
-  async deleteOrder(id: string): Promise<{ message: string }> {
-    return this.deleteById(id);
+  async deleteOrder(
+    id: string,
+    userCompanyId?: string,
+  ): Promise<{ message: string }> {
+    return this.deleteById(id, userCompanyId);
   }
 }

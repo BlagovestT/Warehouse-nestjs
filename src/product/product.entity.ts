@@ -3,11 +3,7 @@ import { BaseEntity } from '../common/entities/base.entity';
 import { Company } from '../company/company.entity';
 import { User } from '../user/user.entity';
 import { OrderItem } from '../order-item/order-item.entity';
-
-export enum ProductType {
-  SOLID = 'solid',
-  LIQUID = 'liquid',
-}
+import { ProductType } from 'src/common/enums/product-type.enum';
 
 export type CreateProductData = Pick<
   Product,

@@ -7,56 +7,149 @@ import {
   Body,
   Param,
   ParseUUIDPipe,
-  UsePipes,
   HttpStatus,
   HttpCode,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
+
 import { CompanyService } from './company.service';
 import { CreateCompanyData, UpdateCompanyData } from './company.entity';
 import { createCompanySchema, updateCompanySchema } from './company.schema';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
+import { RoleGuard } from '../common/guards/role.guard';
+import { GetUser } from '../common/decorators/get-user.decorator';
+import { Roles } from '../common/decorators/role.decorator';
+import { Role } from '../common/enums/role.enum';
+import { UserFromToken } from '../common/guards/jwt.guard';
 
+@ApiTags('Companies')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('company')
-@UseGuards(JwtAuthGuard)
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
 
-  // GET /api/company - Get all companies
   @Get()
-  async getAllCompanies() {
-    return await this.companyService.getAllCompanies();
+  @Roles(Role.VIEWER, Role.OPERATOR, Role.OWNER)
+  @ApiOperation({ summary: 'Get all companies (filtered by user company)' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of companies retrieved successfully',
+  })
+  async getAllCompanies(@GetUser() currentUser: UserFromToken) {
+    return await this.companyService.getAllCompanies(currentUser.companyId);
   }
 
-  // GET /api/company/:id - Get company by ID
   @Get(':id')
-  async getCompanyById(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.companyService.getCompanyById(id);
+  @Roles(Role.VIEWER, Role.OPERATOR, Role.OWNER)
+  @ApiOperation({ summary: "Get company by ID (must be user's company)" })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiResponse({
+    status: 200,
+    description: 'Company retrieved successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Company not found',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - not your company',
+  })
+  async getCompanyById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser() currentUser: UserFromToken,
+  ) {
+    return await this.companyService.getCompanyById(id, currentUser.companyId);
   }
 
-  // POST /api/company - Create new company
   @Post()
+  @Roles(Role.OPERATOR, Role.OWNER)
   @HttpCode(HttpStatus.CREATED)
-  @UsePipes(new ZodValidationPipe(createCompanySchema))
-  async createCompany(@Body() companyData: CreateCompanyData) {
-    const newCompany = await this.companyService.createCompany(companyData);
+  @ApiOperation({ summary: 'Create a new company' })
+  @ApiBody({
+    description: 'Company creation data',
+    schema: {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string', minLength: 1, maxLength: 255 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Company created successfully',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Company already exists',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - OPERATOR or OWNER role required',
+  })
+  async createCompany(
+    @Body(new ZodValidationPipe(createCompanySchema))
+    companyData: CreateCompanyData,
+    @GetUser() currentUser: UserFromToken,
+  ) {
+    const newCompany = await this.companyService.createCompany(
+      companyData,
+      currentUser.id,
+    );
     return {
       message: 'Company created successfully',
       company: newCompany,
     };
   }
 
-  // PUT /api/company/:id - Update company
   @Put(':id')
-  @UsePipes(new ZodValidationPipe(updateCompanySchema))
+  @Roles(Role.OPERATOR, Role.OWNER)
+  @ApiOperation({ summary: "Update company (must be user's company)" })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiBody({
+    description: 'Company update data',
+    schema: {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string', minLength: 1, maxLength: 255 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Company updated successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Company not found',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - not your company or insufficient role',
+  })
   async updateCompany(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateData: UpdateCompanyData,
+    @Body(new ZodValidationPipe(updateCompanySchema))
+    updateData: UpdateCompanyData,
+    @GetUser() currentUser: UserFromToken,
   ) {
     const updatedCompany = await this.companyService.updateCompany(
       id,
       updateData,
+      currentUser.id,
+      currentUser.companyId,
     );
     return {
       message: 'Company updated successfully',
@@ -64,9 +157,28 @@ export class CompanyController {
     };
   }
 
-  // DELETE /api/company/:id - Delete company
   @Delete(':id')
-  async deleteCompany(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.companyService.deleteCompany(id);
+  @Roles(Role.OWNER)
+  @ApiOperation({
+    summary: "Delete company (must be user's company, OWNER only)",
+  })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiResponse({
+    status: 200,
+    description: 'Company deleted successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Company not found',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - not your company or OWNER role required',
+  })
+  async deleteCompany(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser() currentUser: UserFromToken,
+  ) {
+    return await this.companyService.deleteCompany(id, currentUser.companyId);
   }
 }

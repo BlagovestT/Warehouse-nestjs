@@ -3,12 +3,7 @@ import { BaseEntity } from '../common/entities/base.entity';
 import { Company } from '../company/company.entity';
 import { User } from '../user/user.entity';
 import { Order } from '../order/order.entity';
-
-export enum SupportType {
-  SOLID = 'solid',
-  LIQUID = 'liquid',
-  MIXED = 'mixed',
-}
+import { SupportType } from 'src/common/enums/warehouse-type.enum';
 
 export type CreateWarehouseData = Pick<
   Warehouse,

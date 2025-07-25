@@ -1,13 +1,13 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
-import { User } from '../../user/user.entity';
+import { UserFromToken } from '../guards/jwt.guard';
 
 interface RequestWithUser extends Request {
-  user: User;
+  user: UserFromToken;
 }
 
 export const GetUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): User => {
+  (data: unknown, ctx: ExecutionContext): UserFromToken => {
     const request = ctx.switchToHttp().getRequest<RequestWithUser>();
     return request.user;
   },

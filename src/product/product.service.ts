@@ -6,14 +6,8 @@ import {
   CreateProductData,
   UpdateProductData,
 } from './product.entity';
+import { BestSellingProductResult } from 'src/common/interfaces/product.interface';
 import { BaseService } from '../common/services/base.service';
-
-export interface BestSellingProductResult {
-  productName: string;
-  price: string;
-  companyName: string;
-  totalSold: string;
-}
 
 @Injectable()
 export class ProductService extends BaseService<Product> {
@@ -28,56 +22,77 @@ export class ProductService extends BaseService<Product> {
     return 'Product';
   }
 
-  // CRUD
-  async getAllProducts(): Promise<Product[]> {
-    return this.getAll();
+  async getAllProducts(userCompanyId: string): Promise<Product[]> {
+    return this.getAll(userCompanyId);
   }
 
-  async getProductById(id: string): Promise<Product> {
-    return this.getById(id);
+  async getProductById(id: string, userCompanyId: string): Promise<Product> {
+    return this.getById(id, userCompanyId);
   }
 
-  async createProduct(productData: CreateProductData): Promise<Product> {
-    const { name } = productData;
+  async createProduct(
+    productData: CreateProductData,
+    modifiedById: string,
+  ): Promise<Product> {
+    const { name, companyId } = productData;
 
     const existingProduct = await this.productRepository.findOne({
-      where: { name },
+      where: { name, companyId },
     });
 
     if (existingProduct) {
-      throw new ConflictException('Product already exists');
+      throw new ConflictException(
+        'Product name already exists in your company',
+      );
     }
 
-    const product = this.productRepository.create(productData);
+    const product = this.productRepository.create({
+      ...productData,
+      modifiedBy: modifiedById,
+    });
+
     return await this.productRepository.save(product);
   }
 
   async updateProduct(
     id: string,
     updateData: UpdateProductData,
+    modifiedById: string,
+    userCompanyId: string,
   ): Promise<Product> {
-    const product = await this.getProductById(id);
+    const product = await this.getProductById(id, userCompanyId);
 
     if (updateData.name && updateData.name !== product.name) {
       const existingProduct = await this.productRepository.findOne({
-        where: { name: updateData.name },
+        where: { name: updateData.name, companyId: product.companyId },
       });
 
       if (existingProduct) {
-        throw new ConflictException('Name already exists');
+        throw new ConflictException(
+          'Product name already exists in your company',
+        );
       }
     }
 
-    await this.productRepository.update(id, updateData);
-    return await this.getProductById(id);
+    await this.productRepository.update(id, {
+      ...updateData,
+      modifiedBy: modifiedById,
+    });
+
+    return await this.getProductById(id, userCompanyId);
   }
 
-  async deleteProduct(id: string): Promise<{ message: string }> {
-    return this.deleteById(id);
+  async deleteProduct(
+    id: string,
+    userCompanyId: string,
+  ): Promise<{ message: string }> {
+    return this.deleteById(id, userCompanyId);
   }
 
-  async getBestSellingProducts(): Promise<BestSellingProductResult> {
-    const result = await this.productRepository
+  async getBestSellingProducts(
+    userCompanyId?: string,
+  ): Promise<BestSellingProductResult> {
+    const queryBuilder = this.productRepository
       .createQueryBuilder('product')
       .select('product.name', 'productName')
       .addSelect('product.price', 'price')
@@ -90,7 +105,15 @@ export class ProductService extends BaseService<Product> {
       .andWhere('product.deleted_at IS NULL')
       .andWhere('orderItem.deleted_at IS NULL')
       .andWhere('order.deleted_at IS NULL')
-      .andWhere('company.deleted_at IS NULL')
+      .andWhere('company.deleted_at IS NULL');
+
+    if (userCompanyId) {
+      queryBuilder.andWhere('product.company_id = :companyId', {
+        companyId: userCompanyId,
+      });
+    }
+
+    const result = await queryBuilder
       .groupBy('product.name')
       .addGroupBy('product.price')
       .addGroupBy('company.name')

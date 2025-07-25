@@ -16,7 +16,7 @@ export class Company extends BaseEntity {
   name!: string;
 
   @Column({ name: 'modified_by', type: 'uuid' })
-  modifiedBy!: string;
+  modifiedBy?: string;
 
   @OneToMany(() => User, (user) => user.company)
   users!: User[];

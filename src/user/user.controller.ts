@@ -1,80 +1,133 @@
 import {
   Controller,
   Get,
-  Post,
   Put,
   Delete,
   Body,
   Param,
   ParseUUIDPipe,
-  UsePipes,
-  HttpStatus,
-  HttpCode,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { CreateUserData, UpdateUserData, User } from './user.entity';
-import { createUserSchema, updateUserSchema } from './user.schema';
+import { UpdateUserData } from './user.entity';
+import { updateUserSchema } from './user.schema';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
+import { RoleGuard } from '../common/guards/role.guard';
 import { GetUser } from '../common/decorators/get-user.decorator';
+import { Roles } from '../common/decorators/role.decorator';
+import { Role } from '../common/enums/role.enum';
+import { UserFromToken } from '../common/guards/jwt.guard';
 
+@ApiTags('Users')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // GET /api/user - Get all users (Protected)
   @Get()
-  @UseGuards(JwtAuthGuard)
-  async getAllUsers() {
-    return await this.userService.getAllUsers();
+  @Roles(Role.VIEWER, Role.OPERATOR, Role.OWNER)
+  @ApiOperation({ summary: "Get all users from current user's company" })
+  @ApiResponse({
+    status: 200,
+    description: 'List of users from your company retrieved successfully',
+  })
+  async getAllUsers(@GetUser() currentUser: UserFromToken) {
+    return await this.userService.getAllUsers(currentUser.companyId);
   }
 
-  // GET /api/user/profile - Get current user profile (Protected)
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
-  getProfile(@GetUser() user: User) {
+  @Roles(Role.VIEWER, Role.OPERATOR, Role.OWNER)
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully',
+  })
+  getProfile(@GetUser() user: UserFromToken) {
     return user;
   }
 
-  // GET /api/user/:id - Get user by ID (Protected)
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  async getUserById(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.userService.getUserById(id);
+  @Roles(Role.VIEWER, Role.OPERATOR, Role.OWNER)
+  @ApiOperation({ summary: 'Get user by ID (must be from same company)' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'User retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - user not from your company',
+  })
+  async getUserById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser() currentUser: UserFromToken,
+  ) {
+    return await this.userService.getUserById(id, currentUser.companyId);
   }
 
-  // POST /api/user - Create new user (Public for admin)
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @UsePipes(new ZodValidationPipe(createUserSchema))
-  async createUser(@Body() userData: CreateUserData) {
-    const newUser = await this.userService.createUser(userData);
-    return {
-      message: 'User created successfully',
-      user: newUser,
-    };
-  }
-
-  // PUT /api/user/:id - Update user (Protected)
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  @UsePipes(new ZodValidationPipe(updateUserSchema))
+  @Roles(Role.OPERATOR, Role.OWNER)
+  @ApiOperation({ summary: 'Update user by ID (must be from same company)' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiBody({
+    description: 'User update payload',
+    schema: {
+      type: 'object',
+      properties: {
+        username: { type: 'string', minLength: 3, maxLength: 50 },
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string', minLength: 6 },
+        role: { type: 'string', enum: ['owner', 'operator', 'viewer'] },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Access denied - user not from your company or insufficient role',
+  })
   async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateData: UpdateUserData,
+    @Body(new ZodValidationPipe(updateUserSchema)) updateData: UpdateUserData,
+    @GetUser() currentUser: UserFromToken,
   ) {
-    const updatedUser = await this.userService.updateUser(id, updateData);
+    const updatedUser = await this.userService.updateUser(
+      id,
+      updateData,
+      currentUser.id,
+      currentUser.companyId,
+    );
     return {
       message: 'User updated successfully',
       user: updatedUser,
     };
   }
 
-  // DELETE /api/user/:id - Delete user (Protected)
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.userService.deleteUser(id);
+  @Roles(Role.OWNER)
+  @ApiOperation({
+    summary: 'Delete user by ID (must be from same company, OWNER only)',
+  })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Access denied - user not from your company or OWNER role required',
+  })
+  async deleteUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser() currentUser: UserFromToken,
+  ) {
+    return await this.userService.deleteUser(id, currentUser.companyId);
   }
 }
